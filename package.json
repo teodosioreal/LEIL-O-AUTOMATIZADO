@@ -4,6 +4,9 @@
   "description": "Plataforma de leilão ao vivo (testes de funcionamento) — lances em tempo real, anti-sniping e webhooks configuráveis.",
   "private": true,
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js"
   },

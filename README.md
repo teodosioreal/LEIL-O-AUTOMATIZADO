@@ -28,8 +28,11 @@ hPanel. Os passos são os mesmos nos dois casos:
 
 1. Suba a pasta inteira deste projeto (via Git, FTP, ou pelo File Manager do
    hPanel). Não precisa subir a pasta `node_modules` — ela é gerada no passo 4.
-2. No hPanel, na seção Node.js, aponte o **arquivo de inicialização** para
-   `server.js`.
+2. No hPanel, na seção Node.js, escolha a **versão do Node 18 ou mais
+   recente** (o app declara isso em `package.json` → `engines`) e aponte o
+   **arquivo de inicialização** para `server.js`. Se a versão selecionada
+   for menor que 18, a instalação das dependências ou a inicialização
+   costuma falhar.
 3. Copie `.env.example` para `.env` e preencha:
    ```
    PORT=3000
