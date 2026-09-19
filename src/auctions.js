@@ -80,10 +80,16 @@ function listarLances(leilaoId, limit = 100) {
     .map(lancePublico);
 }
 
+// Anti-sniping "simples": quando ativo, usa esses valores fixos — não
+// precisa expor os dois números na tela, só um interruptor.
+const ANTI_SNIPE_JANELA_PADRAO = 30;
+const ANTI_SNIPE_EXTENSAO_PADRAO = 60;
+
 function criarLeilao(dados) {
   const id = proximoId('leiloes');
   const iniciaEm = dados.iniciaEm || agora();
   const jaComecou = new Date(iniciaEm).getTime() <= Date.now();
+  const antiSnipeAtivo = dados.antiSnipeAtivo !== false;
   const leilao = {
     id,
     titulo: dados.titulo,
@@ -92,11 +98,11 @@ function criarLeilao(dados) {
     precoInicial: Number(dados.precoInicial) || 0,
     precoAtual: Number(dados.precoInicial) || 0,
     incrementoMinimo: Number(dados.incrementoMinimo) > 0 ? Number(dados.incrementoMinimo) : 1,
-    moeda: dados.moeda || 'BRL',
+    moeda: 'BRL',
     iniciaEm,
     terminaEm: dados.terminaEm,
-    antiSnipeJanelaSegundos: Number(dados.antiSnipeJanelaSegundos) >= 0 ? Number(dados.antiSnipeJanelaSegundos) : 30,
-    antiSnipeExtensaoSegundos: Number(dados.antiSnipeExtensaoSegundos) > 0 ? Number(dados.antiSnipeExtensaoSegundos) : 60,
+    antiSnipeJanelaSegundos: antiSnipeAtivo ? ANTI_SNIPE_JANELA_PADRAO : 0,
+    antiSnipeExtensaoSegundos: antiSnipeAtivo ? ANTI_SNIPE_EXTENSAO_PADRAO : 0,
     status: jaComecou ? 'ao_vivo' : 'agendado',
     totalLances: 0,
     vencedorNome: null,
@@ -108,19 +114,6 @@ function criarLeilao(dados) {
   salvar();
 
   if (jaComecou) dispararWebhookStart(leilao);
-  return leilao;
-}
-
-function atualizarLeilao(id, dados) {
-  const leilao = obterLeilao(id);
-  if (!leilao) return null;
-  const campos = ['titulo', 'descricao', 'imagemUrl', 'terminaEm', 'antiSnipeJanelaSegundos', 'antiSnipeExtensaoSegundos'];
-  for (const campo of campos) {
-    if (dados[campo] !== undefined && dados[campo] !== '') leilao[campo] = dados[campo];
-  }
-  if (dados.incrementoMinimo) leilao.incrementoMinimo = Number(dados.incrementoMinimo);
-  leilao.atualizadoEm = agora();
-  salvar();
   return leilao;
 }
 
@@ -313,10 +306,9 @@ function iniciar() {
   setInterval(tick, TICK_MS);
 }
 
-// ---------- rotação automática de leilões ----------
-// Cria (e, se configurado, já simula) um leilão novo sozinho, de X em X
-// minutos — pra deixar a plataforma rodando testes em loop sem precisar
-// clicar em "criar leilão" toda vez.
+// ---------- configuração única do leilão automático ----------
+// Usada tanto pelo botão "Simular leilão agora" quanto pela rotação
+// automática — um único lugar pra configurar tudo, sem repetir campos.
 
 function getConfigRotacao() {
   return estado.rotacao;
@@ -326,6 +318,49 @@ function setConfigRotacao(parcial) {
   Object.assign(estado.rotacao, parcial);
   salvar();
   return estado.rotacao;
+}
+
+// Cria um leilão a partir da config salva e já dispara os lances
+// automáticos (até `maxCompradores` compradores sorteados do cadastro,
+// cada um dando um lance de valor aleatório entre valorMin e valorMax).
+function criarLeilaoDaConfig() {
+  const cfg = estado.rotacao;
+  cfg.contador += 1;
+  cfg.ultimoCriadoEm = agora();
+  salvar();
+
+  const duracaoMs = Math.max(0.5, Number(cfg.duracaoMinutos) || 5) * 60000;
+  const novo = criarLeilao({
+    titulo: `${cfg.tituloBase} #${cfg.contador}`,
+    precoInicial: cfg.precoInicial,
+    incrementoMinimo: cfg.incrementoMinimo,
+    iniciaEm: agora(),
+    terminaEm: new Date(Date.now() + duracaoMs).toISOString(),
+    antiSnipeAtivo: cfg.antiSnipeAtivo
+  });
+
+  if (estado.participantes.length) {
+    try {
+      dispararSimulacao(novo.id, {
+        maxCompradores: cfg.maxCompradores,
+        valorMin: cfg.valorMin,
+        valorMax: cfg.valorMax,
+        intervaloMinMs: Math.max(0.5, Number(cfg.intervaloLancesMinSeg) || 3) * 1000,
+        intervaloMaxMs: Math.max(0.5, Number(cfg.intervaloLancesMaxSeg) || 8) * 1000
+      });
+    } catch {
+      // sem comprador cadastrado ou outro erro — o leilão fica criado mesmo assim
+    }
+  }
+
+  return novo;
+}
+
+// Botão "Simular leilão agora": cria na hora, sem esperar o intervalo da
+// rotação (e reinicia a contagem da rotação a partir de agora, pra não
+// criar dois leilões muito seguidos se a rotação também estiver ativa).
+function simularLeilaoAgora() {
+  return criarLeilaoDaConfig();
 }
 
 function processarRotacaoAutomatica(agoraMs) {
@@ -338,35 +373,7 @@ function processarRotacaoAutomatica(agoraMs) {
   const ultimo = cfg.ultimoCriadoEm ? new Date(cfg.ultimoCriadoEm).getTime() : 0;
   if (agoraMs - ultimo < intervaloMs) return;
 
-  cfg.contador += 1;
-  cfg.ultimoCriadoEm = agora();
-  salvar();
-
-  const duracaoMs = Math.max(0.5, Number(cfg.duracaoMinutos) || 5) * 60000;
-  const novo = criarLeilao({
-    titulo: `${cfg.tituloBase} #${cfg.contador}`,
-    precoInicial: cfg.precoInicial,
-    incrementoMinimo: cfg.incrementoMinimo,
-    moeda: cfg.moeda,
-    iniciaEm: agora(),
-    terminaEm: new Date(agoraMs + duracaoMs).toISOString(),
-    antiSnipeJanelaSegundos: cfg.antiSnipeJanelaSegundos,
-    antiSnipeExtensaoSegundos: cfg.antiSnipeExtensaoSegundos
-  });
-
-  if (cfg.autoSimular && estado.participantes.length) {
-    try {
-      dispararSimulacao(novo.id, {
-        lancesPorComprador: cfg.lancesPorComprador,
-        valorMin: cfg.valorMin,
-        valorMax: cfg.valorMax,
-        intervaloMinMs: cfg.intervaloMinMs,
-        intervaloMaxMs: cfg.intervaloMaxMs
-      });
-    } catch {
-      // sem comprador cadastrado ou outro erro — o leilão fica criado mesmo assim
-    }
-  }
+  criarLeilaoDaConfig();
 }
 
 // ---------- simulador de lances (testes de ponta a ponta) ----------
@@ -382,21 +389,17 @@ function embaralhar(lista) {
   return copia;
 }
 
-// Cada comprador cadastrado dá exatamente `lancesPorComprador` lances (a
-// ordem entre eles é embaralhada). Cada lance aumenta o preço atual em um
-// valor aleatório dentro de [valorMin, valorMax] — sem teto: o preço sobe
-// livremente enquanto o leilão estiver ao vivo.
-function dispararSimulacao(leilaoId, { lancesPorComprador, valorMin, valorMax, intervaloMinMs, intervaloMaxMs }) {
+// Sorteia até `maxCompradores` entre os cadastrados; cada um dá exatamente
+// um lance, com valor aleatório entre [valorMin, valorMax] somado ao preço
+// atual — sem teto: o preço sobe livremente enquanto o leilão estiver ao vivo.
+function dispararSimulacao(leilaoId, { maxCompradores, valorMin, valorMax, intervaloMinMs, intervaloMaxMs }) {
   const leilao = obterLeilao(leilaoId);
   if (!leilao) throw new ErroLance('Leilão não encontrado');
   if (!estado.participantes.length) throw new ErroLance('Cadastre compradores antes de simular lances');
   if (simulacoesAtivas.has(Number(leilaoId))) throw new ErroLance('Já existe uma simulação rodando pra este leilão');
 
-  let fila = [];
-  for (const p of estado.participantes) {
-    for (let i = 0; i < lancesPorComprador; i++) fila.push(p.id);
-  }
-  fila = embaralhar(fila);
+  const quantidade = Math.max(1, Math.min(Number(maxCompradores) || 5, estado.participantes.length));
+  const fila = embaralhar(estado.participantes.map((p) => p.id)).slice(0, quantidade);
 
   const controle = { cancelado: false };
   simulacoesAtivas.set(Number(leilaoId), controle);
@@ -425,18 +428,6 @@ function dispararSimulacao(leilaoId, { lancesPorComprador, valorMin, valorMax, i
   return { leilaoId: Number(leilaoId), totalLances: fila.length };
 }
 
-function pararSimulacao(leilaoId) {
-  const controle = simulacoesAtivas.get(Number(leilaoId));
-  if (!controle) return false;
-  controle.cancelado = true;
-  simulacoesAtivas.delete(Number(leilaoId));
-  return true;
-}
-
-function simulacaoAtiva(leilaoId) {
-  return simulacoesAtivas.has(Number(leilaoId));
-}
-
 module.exports = {
   ErroLance,
   leilaoPublico,
@@ -445,8 +436,6 @@ module.exports = {
   listarLeiloesAdmin,
   obterLeilao,
   listarLances,
-  criarLeilao,
-  atualizarLeilao,
   removerLeilao,
   listarParticipantes,
   criarParticipante,
@@ -454,9 +443,7 @@ module.exports = {
   registrarLance,
   confirmarPagamento,
   iniciar,
-  dispararSimulacao,
-  pararSimulacao,
-  simulacaoAtiva,
+  simularLeilaoAgora,
   getConfigRotacao,
   setConfigRotacao
 };

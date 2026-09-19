@@ -65,25 +65,24 @@ function estadoInicial() {
       autoConfirmarPagamentoSegundos: 10
     },
     webhookEventos: [],
-    // rotação automática: cria (e opcionalmente já simula) um leilão novo
-    // de tempos em tempos, sozinho — pra deixar rodando sem precisar ficar
-    // clicando em "criar leilão" toda hora.
+    // Configuração única do "leilão automático": usada tanto pelo botão
+    // "Simular leilão agora" quanto pela rotação automática (ativo=true
+    // cria um leilão novo sozinho a cada intervaloMinutos). Todo leilão
+    // criado por aqui já sai com lances automáticos de até
+    // `maxCompradores` compradores sorteados do cadastro.
     rotacao: {
       ativo: false,
       intervaloMinutos: 5,
-      duracaoMinutos: 5,
       tituloBase: 'Leilão automático',
       precoInicial: 100,
       incrementoMinimo: 10,
-      moeda: 'BRL',
-      antiSnipeJanelaSegundos: 30,
-      antiSnipeExtensaoSegundos: 60,
-      autoSimular: true,
-      lancesPorComprador: 2,
+      duracaoMinutos: 5,
+      antiSnipeAtivo: true,
+      maxCompradores: 5,
       valorMin: 10,
       valorMax: 50,
-      intervaloMinMs: 3000,
-      intervaloMaxMs: 8000,
+      intervaloLancesMinSeg: 3,
+      intervaloLancesMaxSeg: 8,
       ultimoCriadoEm: null,
       contador: 0
     },

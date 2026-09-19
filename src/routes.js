@@ -54,18 +54,15 @@ admin.get('/leiloes', (req, res) => {
   res.json(auctions.listarLeiloesAdmin());
 });
 
-admin.post('/leiloes', (req, res) => {
+// Cria um leilão agora mesmo, usando a configuração salva (preço,
+// duração, anti-sniping) e já dispara lances automáticos de até
+// `maxCompradores` compradores sorteados do cadastro.
+admin.post('/leiloes/simular-agora', (req, res) => {
   try {
-    res.status(201).json(auctions.criarLeilao(req.body));
+    res.status(201).json(auctions.simularLeilaoAgora());
   } catch (err) {
     res.status(400).json({ erro: err.message });
   }
-});
-
-admin.put('/leiloes/:id', (req, res) => {
-  const leilao = auctions.atualizarLeilao(req.params.id, req.body);
-  if (!leilao) return res.status(404).json({ erro: 'Leilão não encontrado' });
-  res.json(leilao);
 });
 
 admin.delete('/leiloes/:id', (req, res) => {
@@ -80,26 +77,6 @@ admin.post('/leiloes/:id/confirmar-pagamento', (req, res) => {
   } catch (err) {
     res.status(400).json({ erro: err.message });
   }
-});
-
-admin.post('/leiloes/:id/simular', (req, res) => {
-  try {
-    const lancesPorComprador = Math.max(1, Math.min(50, Number(req.body.lancesPorComprador) || 3));
-    const valorMin = Math.max(0.01, Number(req.body.valorMin) || 10);
-    const valorMax = Math.max(valorMin, Number(req.body.valorMax) || valorMin);
-    const intervaloMinMs = Number(req.body.intervaloMinMs) || 2000;
-    const intervaloMaxMs = Math.max(intervaloMinMs, Number(req.body.intervaloMaxMs) || 6000);
-    res.json(
-      auctions.dispararSimulacao(req.params.id, { lancesPorComprador, valorMin, valorMax, intervaloMinMs, intervaloMaxMs })
-    );
-  } catch (err) {
-    res.status(400).json({ erro: err.message });
-  }
-});
-
-admin.post('/leiloes/:id/simular/parar', (req, res) => {
-  auctions.pararSimulacao(req.params.id);
-  res.status(204).end();
 });
 
 admin.get('/participantes', (req, res) => {

@@ -38,7 +38,6 @@ async function carregarLeiloes() {
         <td>${fmtData(l.terminaEm)}</td>
         <td class="linha-acoes">
           <a class="btn btn-secundario btn-pequeno" href="/leilao.html?id=${l.id}" target="_blank">Ver</a>
-          ${l.status === 'ao_vivo' ? `<button class="btn btn-secundario btn-pequeno" data-simular="${l.id}">Simular lances</button>` : ''}
           ${l.status === 'aguardando_pagamento' ? `<button class="btn btn-secundario btn-pequeno" data-confirmar="${l.id}">Confirmar pagamento</button>` : ''}
           <button class="btn btn-perigo btn-pequeno" data-excluir="${l.id}">Excluir</button>
         </td>
@@ -46,55 +45,6 @@ async function carregarLeiloes() {
     .join('');
 }
 
-document.getElementById('btnCriarLeilao').addEventListener('click', async () => {
-  const aviso = document.getElementById('avisoLeilao');
-  aviso.innerHTML = '';
-
-  let imagemUrl = document.getElementById('f-imagemUrl').value.trim();
-  const arquivo = document.getElementById('f-imagemArquivo').files[0];
-  if (arquivo) {
-    const fd = new FormData();
-    fd.append('imagem', arquivo);
-    const up = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-    const dadosUp = await up.json();
-    if (up.ok) imagemUrl = dadosUp.url;
-  }
-
-  const corpo = {
-    titulo: document.getElementById('f-titulo').value.trim(),
-    descricao: document.getElementById('f-descricao').value.trim(),
-    imagemUrl,
-    precoInicial: document.getElementById('f-precoInicial').value,
-    incrementoMinimo: document.getElementById('f-incrementoMinimo').value,
-    moeda: document.getElementById('f-moeda').value.trim() || 'BRL',
-    iniciaEm: document.getElementById('f-iniciaEm').value ? new Date(document.getElementById('f-iniciaEm').value).toISOString() : new Date().toISOString(),
-    terminaEm: document.getElementById('f-terminaEm').value ? new Date(document.getElementById('f-terminaEm').value).toISOString() : null,
-    antiSnipeJanelaSegundos: document.getElementById('f-antiSnipeJanela').value,
-    antiSnipeExtensaoSegundos: document.getElementById('f-antiSnipeExtensao').value
-  };
-
-  if (!corpo.titulo || !corpo.terminaEm) {
-    aviso.innerHTML = '<div class="aviso aviso-erro">Preencha ao menos título e término.</div>';
-    return;
-  }
-
-  const resp = await fetch('/api/admin/leiloes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo)
-  });
-  const dados = await resp.json();
-  if (!resp.ok) {
-    aviso.innerHTML = `<div class="aviso aviso-erro">${dados.erro}</div>`;
-    return;
-  }
-  aviso.innerHTML = '<div class="aviso aviso-ok">Leilão criado!</div>';
-  ['f-titulo', 'f-descricao', 'f-imagemUrl'].forEach((id) => (document.getElementById(id).value = ''));
-  document.getElementById('f-imagemArquivo').value = '';
-  carregarLeiloes();
-});
-
-let leilaoSimulandoId = null;
 document.getElementById('tabelaLeiloes').addEventListener('click', async (ev) => {
   const alvo = ev.target;
   if (alvo.dataset.excluir) {
@@ -104,74 +54,54 @@ document.getElementById('tabelaLeiloes').addEventListener('click', async (ev) =>
   } else if (alvo.dataset.confirmar) {
     await fetch(`/api/admin/leiloes/${alvo.dataset.confirmar}/confirmar-pagamento`, { method: 'POST' });
     carregarLeiloes();
-  } else if (alvo.dataset.simular) {
-    leilaoSimulandoId = alvo.dataset.simular;
-    document.getElementById('avisoSim').innerHTML = '';
-    document.getElementById('modalSimulador').style.display = 'flex';
   }
 });
 
-document.getElementById('btnFecharSim').addEventListener('click', () => {
-  document.getElementById('modalSimulador').style.display = 'none';
-});
-
-document.getElementById('btnDispararSim').addEventListener('click', async () => {
-  const corpo = {
-    lancesPorComprador: document.getElementById('sim-lancesPorComprador').value,
-    valorMin: document.getElementById('sim-valorMin').value,
-    valorMax: document.getElementById('sim-valorMax').value,
-    intervaloMinMs: document.getElementById('sim-intervaloMin').value,
-    intervaloMaxMs: document.getElementById('sim-intervaloMax').value
-  };
-  const resp = await fetch(`/api/admin/leiloes/${leilaoSimulandoId}/simular`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo)
-  });
+document.getElementById('btnSimularAgora').addEventListener('click', async () => {
+  const aviso = document.getElementById('avisoSimularAgora');
+  aviso.innerHTML = '';
+  const resp = await fetch('/api/admin/leiloes/simular-agora', { method: 'POST' });
   const dados = await resp.json();
-  const aviso = document.getElementById('avisoSim');
   if (!resp.ok) {
     aviso.innerHTML = `<div class="aviso aviso-erro">${dados.erro}</div>`;
-  } else {
-    aviso.innerHTML = `<div class="aviso aviso-ok">Simulação disparada — ${dados.totalLances} lances no total. Acompanhe na vitrine.</div>`;
+    return;
   }
+  aviso.innerHTML = `<div class="aviso aviso-ok">Leilão "${dados.titulo}" criado — acompanhe na vitrine.</div>`;
+  carregarLeiloes();
 });
 
-// ---------- rotação automática ----------
+// ---------- configurações (leilão automático + rotação) ----------
 
 function atualizarStatusRotacaoTexto(cfg) {
   const status = document.getElementById('statusRotacao');
   if (!cfg.ativo) {
     status.textContent = '';
   } else if (!cfg.ultimoCriadoEm) {
-    status.textContent = 'Ativa — o primeiro leilão automático é criado no próximo minuto.';
+    status.textContent = 'Rotação ativa — o primeiro leilão automático é criado no próximo minuto.';
   } else {
     const proximo = new Date(cfg.ultimoCriadoEm).getTime() + Number(cfg.intervaloMinutos) * 60000;
     const faltamMin = Math.max(0, Math.round((proximo - Date.now()) / 60000));
-    status.textContent = `Ativa — já criou ${cfg.contador} leilão(ões). Próximo em ~${faltamMin} min.`;
+    status.textContent = `Rotação ativa — já criou ${cfg.contador} leilão(ões). Próximo em ~${faltamMin} min.`;
   }
 }
 
 // Preenche o formulário inteiro — só no boot e depois de salvar, pra não
 // sobrescrever o que a pessoa está digitando a cada poll.
-async function carregarRotacaoConfig() {
+async function carregarConfig() {
   const resp = await fetch('/api/admin/rotacao-config');
   const cfg = await resp.json();
-  document.getElementById('rot-ativo').checked = !!cfg.ativo;
-  document.getElementById('rot-intervalo').value = cfg.intervaloMinutos;
-  document.getElementById('rot-duracao').value = cfg.duracaoMinutos;
-  document.getElementById('rot-titulo').value = cfg.tituloBase;
-  document.getElementById('rot-precoInicial').value = cfg.precoInicial;
-  document.getElementById('rot-incrementoMinimo').value = cfg.incrementoMinimo;
-  document.getElementById('rot-moeda').value = cfg.moeda;
-  document.getElementById('rot-antiSnipeJanela').value = cfg.antiSnipeJanelaSegundos;
-  document.getElementById('rot-antiSnipeExtensao').value = cfg.antiSnipeExtensaoSegundos;
-  document.getElementById('rot-autoSimular').checked = !!cfg.autoSimular;
-  document.getElementById('rot-lancesPorComprador').value = cfg.lancesPorComprador;
-  document.getElementById('rot-valorMin').value = cfg.valorMin;
-  document.getElementById('rot-valorMax').value = cfg.valorMax;
-  document.getElementById('rot-intervaloMinMs').value = cfg.intervaloMinMs;
-  document.getElementById('rot-intervaloMaxMs').value = cfg.intervaloMaxMs;
+  document.getElementById('cfg-titulo').value = cfg.tituloBase;
+  document.getElementById('cfg-precoInicial').value = cfg.precoInicial;
+  document.getElementById('cfg-incrementoMinimo').value = cfg.incrementoMinimo;
+  document.getElementById('cfg-duracao').value = cfg.duracaoMinutos;
+  document.getElementById('cfg-antiSnipeAtivo').checked = !!cfg.antiSnipeAtivo;
+  document.getElementById('cfg-maxCompradores').value = cfg.maxCompradores;
+  document.getElementById('cfg-valorMin').value = cfg.valorMin;
+  document.getElementById('cfg-valorMax').value = cfg.valorMax;
+  document.getElementById('cfg-intervaloMin').value = cfg.intervaloLancesMinSeg;
+  document.getElementById('cfg-intervaloMax').value = cfg.intervaloLancesMaxSeg;
+  document.getElementById('cfg-rotacaoAtiva').checked = !!cfg.ativo;
+  document.getElementById('cfg-intervaloRotacao').value = cfg.intervaloMinutos;
   atualizarStatusRotacaoTexto(cfg);
 }
 
@@ -182,31 +112,28 @@ async function atualizarStatusRotacao() {
   atualizarStatusRotacaoTexto(await resp.json());
 }
 
-document.getElementById('btnSalvarRotacao').addEventListener('click', async () => {
+document.getElementById('btnSalvarConfig').addEventListener('click', async () => {
   const corpo = {
-    ativo: document.getElementById('rot-ativo').checked,
-    intervaloMinutos: Number(document.getElementById('rot-intervalo').value) || 5,
-    duracaoMinutos: Number(document.getElementById('rot-duracao').value) || 5,
-    tituloBase: document.getElementById('rot-titulo').value.trim() || 'Leilão automático',
-    precoInicial: Number(document.getElementById('rot-precoInicial').value) || 100,
-    incrementoMinimo: Number(document.getElementById('rot-incrementoMinimo').value) || 10,
-    moeda: document.getElementById('rot-moeda').value.trim() || 'BRL',
-    antiSnipeJanelaSegundos: Number(document.getElementById('rot-antiSnipeJanela').value) || 30,
-    antiSnipeExtensaoSegundos: Number(document.getElementById('rot-antiSnipeExtensao').value) || 60,
-    autoSimular: document.getElementById('rot-autoSimular').checked,
-    lancesPorComprador: Number(document.getElementById('rot-lancesPorComprador').value) || 2,
-    valorMin: Number(document.getElementById('rot-valorMin').value) || 10,
-    valorMax: Number(document.getElementById('rot-valorMax').value) || 50,
-    intervaloMinMs: Number(document.getElementById('rot-intervaloMinMs').value) || 3000,
-    intervaloMaxMs: Number(document.getElementById('rot-intervaloMaxMs').value) || 8000
+    tituloBase: document.getElementById('cfg-titulo').value.trim() || 'Leilão automático',
+    precoInicial: Number(document.getElementById('cfg-precoInicial').value) || 100,
+    incrementoMinimo: Number(document.getElementById('cfg-incrementoMinimo').value) || 10,
+    duracaoMinutos: Number(document.getElementById('cfg-duracao').value) || 5,
+    antiSnipeAtivo: document.getElementById('cfg-antiSnipeAtivo').checked,
+    maxCompradores: Number(document.getElementById('cfg-maxCompradores').value) || 5,
+    valorMin: Number(document.getElementById('cfg-valorMin').value) || 10,
+    valorMax: Number(document.getElementById('cfg-valorMax').value) || 50,
+    intervaloLancesMinSeg: Number(document.getElementById('cfg-intervaloMin').value) || 3,
+    intervaloLancesMaxSeg: Number(document.getElementById('cfg-intervaloMax').value) || 8,
+    ativo: document.getElementById('cfg-rotacaoAtiva').checked,
+    intervaloMinutos: Number(document.getElementById('cfg-intervaloRotacao').value) || 5
   };
   await fetch('/api/admin/rotacao-config', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(corpo)
   });
-  document.getElementById('avisoRotacao').innerHTML = '<div class="aviso aviso-ok">Rotação automática salva.</div>';
-  carregarRotacaoConfig();
+  document.getElementById('avisoConfig').innerHTML = '<div class="aviso aviso-ok">Configurações salvas.</div>';
+  carregarConfig();
 });
 
 // ---------- participantes / compradores ----------
@@ -347,7 +274,7 @@ carregarLeiloes();
 carregarParticipantes();
 carregarWebhookConfig();
 carregarEventos();
-carregarRotacaoConfig();
+carregarConfig();
 setInterval(carregarLeiloes, 5000);
 setInterval(carregarEventos, 4000);
 setInterval(atualizarStatusRotacao, 15000);
