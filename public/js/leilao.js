@@ -66,6 +66,15 @@ async function carregarParticipantes() {
     : '<option value="">Cadastre participantes no dashboard</option>';
 }
 
+function animarNovoLance() {
+  el.precoAtual.classList.add('bump');
+  el.conteudo.classList.add('flash-lance');
+  setTimeout(() => {
+    el.precoAtual.classList.remove('bump');
+    el.conteudo.classList.remove('flash-lance');
+  }, 900);
+}
+
 async function carregar() {
   const resp = await fetch(`/api/leiloes/${leilaoId}`);
   if (!resp.ok) {
@@ -73,11 +82,15 @@ async function carregar() {
     return;
   }
   const dados = await resp.json();
+  const totalAntes = leilao?.totalLances ?? -1;
+
   leilao = dados.leilao;
   lances = dados.lances;
   el.conteudo.style.display = 'grid';
   renderLeilao();
   renderFeed();
+
+  if (totalAntes >= 0 && leilao.totalLances > totalAntes) animarNovoLance();
 }
 
 el.btnLance.addEventListener('click', async () => {
@@ -102,6 +115,7 @@ el.btnLance.addEventListener('click', async () => {
       if (dados.prorrogado) {
         el.aviso.innerHTML += '<div class="aviso aviso-prorrogado">Leilão prorrogado — anti-sniping ativado!</div>';
       }
+      await carregar();
     }
   } finally {
     el.btnLance.disabled = leilao?.status !== 'ao_vivo';
@@ -109,28 +123,6 @@ el.btnLance.addEventListener('click', async () => {
 });
 
 setInterval(() => { if (leilao) atualizarContagem(); }, 1000);
+setInterval(carregar, 2000);
 carregarParticipantes();
 carregar();
-
-const socket = io();
-socket.emit('entrar-leilao', leilaoId);
-socket.on('lance:novo', (payload) => {
-  if (String(payload.leilao.id) !== String(leilaoId)) return;
-  leilao = payload.leilao;
-  lances = [payload.lance, ...lances];
-  renderLeilao();
-  renderFeed();
-  el.precoAtual.classList.add('bump');
-  el.conteudo.classList.add('flash-lance');
-  setTimeout(() => {
-    el.precoAtual.classList.remove('bump');
-    el.conteudo.classList.remove('flash-lance');
-  }, 900);
-});
-socket.on('leilao:prorrogado', (payload) => {
-  if (String(payload.leilao.id) !== String(leilaoId)) return;
-  leilao = payload.leilao;
-  renderLeilao();
-});
-socket.on('leilao:encerrado', carregar);
-socket.on('leilao:pago', carregar);

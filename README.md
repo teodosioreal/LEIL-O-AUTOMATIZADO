@@ -1,14 +1,22 @@
 # Leilão Automatizado — plataforma para testes de funcionamento
 
-App de leilão ao vivo (lances em tempo real, anti-sniping e webhooks
-configuráveis) feito pra **testar o fluxo de ponta a ponta** antes de plugar
-num sistema de verdade: você cadastra leilões e uma lista de nomes de
-participantes, e pode disparar um **simulador** que rotaciona esses nomes
-dando lances automaticamente — tudo isso reflete em tempo real na vitrine e
-dispara os webhooks configurados no dashboard.
+App de leilão ao vivo (lances, anti-sniping e webhooks configuráveis) feito
+pra **testar o fluxo de ponta a ponta** antes de plugar num sistema de
+verdade: você cadastra leilões e uma lista de nomes de participantes, e pode
+disparar um **simulador** que rotaciona esses nomes dando lances
+automaticamente — tudo isso aparece na vitrine em poucos segundos (a página
+atualiza sozinha, sem precisar recarregar) e dispara os webhooks
+configurados no dashboard.
 
 Este projeto é **independente** — não compartilha código, banco de dados
 nem deploy com nenhum outro projeto.
+
+Propositalmente **sem WebSocket/Socket.IO** — só Express puro, com a
+vitrine e a página do leilão atualizando via polling (a cada 2-3s). Isso
+mantém a árvore de dependências mínima e 100% JavaScript puro (nada de
+módulo nativo pra compilar), o que importa em hospedagem compartilhada como
+a Hostinger, que normalmente não tem toolchain de build (gcc/python/make)
+disponível.
 
 ## Como rodar
 
@@ -74,8 +82,9 @@ pro seu endpoint de teste já rodando em produção.
 4. Quando o leilão estiver "Ao vivo", clique em **Simular lances** na
    tabela de leilões — escolha quantos lances e o intervalo entre eles. O
    sistema roda em background, sorteando participantes do seu roster,
-   registrando lances de verdade (mesmo caminho de um lance humano) e
-   atualizando a vitrine ao vivo.
+   registrando lances de verdade (mesmo caminho de um lance humano) — a
+   vitrine e a página do leilão pegam cada lance novo no próprio polling
+   (poucos segundos de atraso, sem precisar recarregar a página).
 5. Quando o leilão termina, se houve lance, o pagamento é confirmado
    automaticamente (configurável em Webhooks — ou clique manualmente em
    **Confirmar pagamento** na tabela) e o webhook de vencedor é disparado.
@@ -119,15 +128,21 @@ reenviar manualmente pelo dashboard a qualquer momento, sem trocar o
 ## Estrutura
 
 ```
-server.js         → Express + Socket.IO + Basic Auth no /dashboard e /api/admin
+server.js         → Express + Basic Auth no /dashboard e /api/admin
 src/config.js      → variáveis de ambiente
 src/db.js           → "banco" em JSON (data.json, criado sozinho)
 src/auctions.js       → ciclo de vida do leilão, lances, anti-sniping, simulador
 src/webhooks.js         → fila de entrega dos webhooks (retry/backoff/idempotência)
-src/realtime.js           → ponte com o Socket.IO
-src/routes.js               → API REST (pública + admin)
+src/routes.js             → API REST (pública + admin)
 public/
-  index.html                 → vitrine (cards com contagem regressiva)
-  leilao.html                 → página do leilão (lances + feed ao vivo)
+  index.html                 → vitrine (cards com contagem regressiva, atualiza por polling)
+  leilao.html                 → página do leilão (lances + feed, atualiza por polling)
   dashboard.html                → admin: leilões, participantes, webhooks, simulador
 ```
+
+## Dependências
+
+Só 4, todas puro JavaScript (nenhuma precisa compilar nada):
+`express`, `express-basic-auth`, `multer` (upload de imagem) e `dotenv`.
+Não tem WebSocket, banco com driver nativo, nem qualquer coisa que exija
+compilador C/C++ — pensado pra rodar sem drama em hospedagem compartilhada.

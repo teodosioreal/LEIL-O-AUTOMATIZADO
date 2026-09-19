@@ -5,7 +5,6 @@
 
 const { estado, salvar, proximoId } = require('./db');
 const webhooks = require('./webhooks');
-const realtime = require('./realtime');
 
 const TICK_MS = 1000;
 
@@ -195,7 +194,6 @@ function registrarLance(leilaoId, participanteId, valorPersonalizado) {
 
   salvar();
 
-  realtime.emitirParaLeilao(leilao.id, 'lance:novo', { leilao: leilaoPublico(leilao), lance: lancePublico(lance) });
   webhooks.enqueueEvento('bid.placed', externalId(leilao), {
     titulo: leilao.titulo,
     bidderName: participante.nome,
@@ -207,7 +205,6 @@ function registrarLance(leilaoId, participanteId, valorPersonalizado) {
   });
 
   if (prorrogado) {
-    realtime.emitirParaLeilao(leilao.id, 'leilao:prorrogado', { leilao: leilaoPublico(leilao) });
     dispararWebhookStart(leilao); // mesmo external_id, novo prazo — reenvio de "start"
   }
 
@@ -229,8 +226,6 @@ function encerrarLeilao(leilao) {
   }
   leilao.atualizadoEm = agora();
   salvar();
-  realtime.emitirParaLeilao(leilao.id, 'leilao:encerrado', { leilao: leilaoPublico(leilao) });
-  realtime.emitirGlobal('leiloes:atualizados', {});
 
   const config = webhooks.getConfig();
   if (leilao.status === 'aguardando_pagamento' && config.autoConfirmarPagamento) {
@@ -250,9 +245,6 @@ function confirmarPagamento(id) {
   leilao.status = 'pago';
   leilao.atualizadoEm = agora();
   salvar();
-
-  realtime.emitirParaLeilao(leilao.id, 'leilao:pago', { leilao: leilaoPublico(leilao) });
-  realtime.emitirGlobal('leiloes:atualizados', {});
 
   webhooks.enqueueEvento('auction.won', externalId(leilao), {
     titulo: leilao.titulo,
@@ -274,7 +266,6 @@ function tick() {
       leilao.status = 'ao_vivo';
       leilao.atualizadoEm = agora();
       salvar();
-      realtime.emitirGlobal('leiloes:atualizados', {});
       dispararWebhookStart(leilao);
     } else if (leilao.status === 'ao_vivo' && new Date(leilao.terminaEm).getTime() <= agoraMs) {
       encerrarLeilao(leilao);

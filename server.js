@@ -1,23 +1,13 @@
 const express = require('express');
-const http = require('http');
 const path = require('path');
 const basicAuth = require('express-basic-auth');
-const { Server } = require('socket.io');
 
 const config = require('./src/config');
 const routes = require('./src/routes');
 const auctions = require('./src/auctions');
 const webhooks = require('./src/webhooks');
-const realtime = require('./src/realtime');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-realtime.setIo(io);
-
-io.on('connection', (socket) => {
-  socket.on('entrar-leilao', (leilaoId) => socket.join(`leilao:${leilaoId}`));
-});
 
 app.use(express.json());
 
@@ -38,7 +28,7 @@ app.get('/dashboard.html', protegerDashboard, (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-server.listen(config.port, () => {
+app.listen(config.port, () => {
   console.log(`Leilão Automatizado rodando em http://localhost:${config.port}`);
   auctions.iniciar();
   webhooks.iniciar();

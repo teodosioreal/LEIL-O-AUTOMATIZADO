@@ -36,8 +36,29 @@ function render() {
 
 async function carregar() {
   const resp = await fetch('/api/leiloes');
-  leiloes = await resp.json();
+  const novos = await resp.json();
+
+  // Compara com o que já estava na tela pra saber em qual card animar
+  // (lance novo, sem precisar de WebSocket — só polling mesmo).
+  const mudaram = new Set();
+  for (const novo of novos) {
+    const antigo = leiloes.find((x) => x.id === novo.id);
+    if (antigo && (antigo.totalLances !== novo.totalLances || antigo.status !== novo.status)) {
+      mudaram.add(novo.id);
+    }
+  }
+
+  leiloes = novos;
   render();
+
+  mudaram.forEach((id) => {
+    const card = document.querySelector(`.card[data-id="${id}"]`);
+    if (!card) return;
+    card.classList.add('flash-lance');
+    const preco = card.querySelector('[data-preco]');
+    if (preco) preco.classList.add('bump');
+    setTimeout(() => card.classList.remove('flash-lance'), 900);
+  });
 }
 
 function atualizarContagens() {
@@ -54,21 +75,5 @@ function atualizarContagens() {
 }
 
 setInterval(atualizarContagens, 1000);
+setInterval(carregar, 3000);
 carregar();
-
-const socket = io();
-socket.on('leiloes:atualizados', carregar);
-socket.on('lance:novo', ({ leilao }) => {
-  const idx = leiloes.findIndex((x) => x.id === leilao.id);
-  if (idx >= 0) leiloes[idx] = leilao;
-  render();
-  const card = document.querySelector(`.card[data-id="${leilao.id}"]`);
-  if (card) {
-    card.classList.add('flash-lance');
-    const preco = card.querySelector('[data-preco]');
-    if (preco) preco.classList.add('bump');
-    setTimeout(() => card.classList.remove('flash-lance'), 900);
-  }
-});
-
-setInterval(carregar, 15000);
