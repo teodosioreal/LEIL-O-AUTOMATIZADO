@@ -21,6 +21,44 @@ npm start
 - Vitrine pública: `http://localhost:3000/`
 - Dashboard (usuário/senha do `.env`): `http://localhost:3000/dashboard.html`
 
+## Como subir na Hostinger
+
+A Hostinger tem um recurso de **"Node.js hosting"** (ou um plano VPS) no
+hPanel. Os passos são os mesmos nos dois casos:
+
+1. Suba a pasta inteira deste projeto (via Git, FTP, ou pelo File Manager do
+   hPanel). Não precisa subir a pasta `node_modules` — ela é gerada no passo 4.
+2. No hPanel, na seção Node.js, aponte o **arquivo de inicialização** para
+   `server.js`.
+3. Copie `.env.example` para `.env` e preencha:
+   ```
+   PORT=3000
+   ADMIN_USER=admin
+   ADMIN_PASSWORD=uma-senha-forte
+   ```
+   (a porta normalmente é definida pela própria Hostinger — confira o valor
+   que ela indicar no hPanel e ajuste o `.env` se for diferente de 3000).
+4. Rode a instalação de dependências (o painel da Hostinger normalmente tem
+   um botão "Run NPM Install"; se for VPS, rode `npm install` via terminal).
+5. Inicie a aplicação (botão "Start" no hPanel, ou `npm start` no VPS).
+6. Acesse o domínio/subdomínio que a Hostinger apontou pro app. A vitrine
+   (`/`) fica aberta pra qualquer um; o dashboard (`/dashboard.html`) pede o
+   usuário/senha do `.env`.
+
+Se for VPS puro (sem o recurso "Node.js hosting"), rode com um gerenciador
+de processos pra ele não cair quando você fechar o terminal:
+```bash
+npm install
+npm install -g pm2
+pm2 start server.js --name leilao-automatizado
+pm2 save
+pm2 startup
+```
+
+**Importante:** troque a senha padrão do dashboard antes de deixar o app
+público, e configure a URL do webhook (aba Webhooks do dashboard) apontando
+pro seu endpoint de teste já rodando em produção.
+
 ## Fluxo básico de teste
 
 1. **Dashboard → Participantes**: cadastre alguns nomes (só nome público,
