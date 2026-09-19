@@ -15,36 +15,36 @@ const dbPath = path.join(__dirname, '..', 'data.json');
 // no avatar automático de iniciais (dá pra trocar por uma foto de verdade
 // a qualquer momento, editando o comprador no dashboard).
 const COMPRADORES_EXEMPLO = [
-  { nome: 'Ahmed Al-Farsi', cidade: 'Dubai, EAU' },
-  { nome: 'Fatima Al-Sayed', cidade: 'Riyadh, Arábia Saudita' },
-  { nome: 'Youssef Haddad', cidade: 'Cairo, Egito' },
-  { nome: 'Layla Mansour', cidade: 'Beirute, Líbano' },
-  { nome: 'Omar Khalil', cidade: 'Amã, Jordânia' },
-  { nome: 'Amina Benali', cidade: 'Casablanca, Marrocos' },
-  { nome: 'Khalid Al-Rashid', cidade: 'Doha, Catar' },
-  { nome: 'Nour Aziz', cidade: 'Tunes, Tunísia' },
-  { nome: 'Tariq Nasser', cidade: 'Kuwait City, Kuwait' },
-  { nome: 'Zainab Qureshi', cidade: 'Sharjah, EAU' },
-  { nome: 'Hassan Bakr', cidade: 'Bagdá, Iraque' },
-  { nome: 'Mariam El-Sherif', cidade: 'Alexandria, Egito' },
-  { nome: 'Karim Zidane', cidade: 'Argel, Argélia' },
-  { nome: 'Reem Al-Otaibi', cidade: 'Jidá, Arábia Saudita' },
-  { nome: 'Sami Abdullah', cidade: 'Mascate, Omã' },
-  { nome: 'Dalia Farouk', cidade: 'Manama, Bahrein' },
-  { nome: 'Rami Saleh', cidade: 'Abu Dhabi, EAU' },
-  { nome: 'Huda Karam', cidade: 'Rabat, Marrocos' },
-  { nome: 'Bilal Hakimi', cidade: 'Trípoli, Líbia' },
-  { nome: 'Salma Yousef', cidade: 'Damasco, Síria' },
-  { nome: 'James Whitfield', cidade: 'Londres, Reino Unido' },
-  { nome: 'Emily Carter', cidade: 'Nova York, EUA' },
-  { nome: 'Michael Bennett', cidade: 'Toronto, Canadá' },
-  { nome: 'Olivia Hughes', cidade: 'Sydney, Austrália' },
-  { nome: 'Daniel Foster', cidade: 'Manchester, Reino Unido' },
-  { nome: 'Carlos Fernández', cidade: 'Madri, Espanha' },
-  { nome: 'Isabel Rodríguez', cidade: 'Buenos Aires, Argentina' },
-  { nome: 'Diego Morales', cidade: 'Cidade do México, México' },
-  { nome: 'Sofía Herrera', cidade: 'Bogotá, Colômbia' },
-  { nome: 'Mateo Vargas', cidade: 'Barcelona, Espanha' }
+  { nome: 'Ahmed Al-Farsi', cidade: 'Dubai, EAU', bandeira: '🇦🇪' },
+  { nome: 'Fatima Al-Sayed', cidade: 'Riyadh, Arábia Saudita', bandeira: '🇸🇦' },
+  { nome: 'Youssef Haddad', cidade: 'Cairo, Egito', bandeira: '🇪🇬' },
+  { nome: 'Layla Mansour', cidade: 'Beirute, Líbano', bandeira: '🇱🇧' },
+  { nome: 'Omar Khalil', cidade: 'Amã, Jordânia', bandeira: '🇯🇴' },
+  { nome: 'Amina Benali', cidade: 'Casablanca, Marrocos', bandeira: '🇲🇦' },
+  { nome: 'Khalid Al-Rashid', cidade: 'Doha, Catar', bandeira: '🇶🇦' },
+  { nome: 'Nour Aziz', cidade: 'Tunes, Tunísia', bandeira: '🇹🇳' },
+  { nome: 'Tariq Nasser', cidade: 'Kuwait City, Kuwait', bandeira: '🇰🇼' },
+  { nome: 'Zainab Qureshi', cidade: 'Sharjah, EAU', bandeira: '🇦🇪' },
+  { nome: 'Hassan Bakr', cidade: 'Bagdá, Iraque', bandeira: '🇮🇶' },
+  { nome: 'Mariam El-Sherif', cidade: 'Alexandria, Egito', bandeira: '🇪🇬' },
+  { nome: 'Karim Zidane', cidade: 'Argel, Argélia', bandeira: '🇩🇿' },
+  { nome: 'Reem Al-Otaibi', cidade: 'Jidá, Arábia Saudita', bandeira: '🇸🇦' },
+  { nome: 'Sami Abdullah', cidade: 'Mascate, Omã', bandeira: '🇴🇲' },
+  { nome: 'Dalia Farouk', cidade: 'Manama, Bahrein', bandeira: '🇧🇭' },
+  { nome: 'Rami Saleh', cidade: 'Abu Dhabi, EAU', bandeira: '🇦🇪' },
+  { nome: 'Huda Karam', cidade: 'Rabat, Marrocos', bandeira: '🇲🇦' },
+  { nome: 'Bilal Hakimi', cidade: 'Trípoli, Líbia', bandeira: '🇱🇾' },
+  { nome: 'Salma Yousef', cidade: 'Damasco, Síria', bandeira: '🇸🇾' },
+  { nome: 'James Whitfield', cidade: 'Londres, Reino Unido', bandeira: '🇬🇧' },
+  { nome: 'Emily Carter', cidade: 'Nova York, EUA', bandeira: '🇺🇸' },
+  { nome: 'Michael Bennett', cidade: 'Toronto, Canadá', bandeira: '🇨🇦' },
+  { nome: 'Olivia Hughes', cidade: 'Sydney, Austrália', bandeira: '🇦🇺' },
+  { nome: 'Daniel Foster', cidade: 'Manchester, Reino Unido', bandeira: '🇬🇧' },
+  { nome: 'Carlos Fernández', cidade: 'Madri, Espanha', bandeira: '🇪🇸' },
+  { nome: 'Isabel Rodríguez', cidade: 'Buenos Aires, Argentina', bandeira: '🇦🇷' },
+  { nome: 'Diego Morales', cidade: 'Cidade do México, México', bandeira: '🇲🇽' },
+  { nome: 'Sofía Herrera', cidade: 'Bogotá, Colômbia', bandeira: '🇨🇴' },
+  { nome: 'Mateo Vargas', cidade: 'Barcelona, Espanha', bandeira: '🇪🇸' }
 ];
 
 function estadoInicial() {
@@ -55,6 +55,11 @@ function estadoInicial() {
     webhookConfig: {
       url: '',
       secret: '',
+      // 'padrao' = payload genérico (event_id/type/external_id/data, com
+      // assinatura HMAC em X-Webhook-Signature); 'privefeet' = formato
+      // exato do privefeet.pro (type flat "start"/"bid"/"end", header
+      // X-Webhook-Secret com o valor cru do secret).
+      formato: 'padrao',
       eventos: { start: true, bid: true, won: true },
       autoConfirmarPagamento: true,
       autoConfirmarPagamentoSegundos: 10
@@ -99,6 +104,7 @@ function semearCompradoresExemplo(estado) {
       id: estado._seq.participantes,
       nome: c.nome,
       cidade: c.cidade,
+      bandeira: c.bandeira || '',
       fotoUrl: '',
       criadoEm: agora()
     });

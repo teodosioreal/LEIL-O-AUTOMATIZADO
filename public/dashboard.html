@@ -117,15 +117,16 @@
         <div class="grid-3">
           <div class="form-linha"><label>Nome</label><input id="f-participanteNome" placeholder="Ex: Carlos Mendes" /></div>
           <div class="form-linha"><label>Cidade / local</label><input id="f-participanteCidade" placeholder="Ex: São Paulo, SP" /></div>
-          <div class="form-linha"><label>Foto (URL ou envie um arquivo)</label>
-            <input id="f-participanteFotoUrl" placeholder="https://..." />
-            <input id="f-participanteFotoArquivo" type="file" accept="image/*" />
-          </div>
+          <div class="form-linha"><label>Bandeira (emoji, opcional)</label><input id="f-participanteBandeira" placeholder="🇧🇷" maxlength="8" /></div>
+        </div>
+        <div class="form-linha"><label>Foto (URL ou envie um arquivo)</label>
+          <input id="f-participanteFotoUrl" placeholder="https://..." />
+          <input id="f-participanteFotoArquivo" type="file" accept="image/*" />
         </div>
         <button id="btnAddParticipante" class="btn btn-lance" style="width:auto">Adicionar comprador</button>
       </div>
       <table>
-        <thead><tr><th>Foto</th><th>ID</th><th>Nome</th><th>Cidade</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Foto</th><th>ID</th><th>Nome</th><th>Cidade</th><th></th><th>Ações</th></tr></thead>
         <tbody id="tabelaParticipantes"></tbody>
       </table>
     </div>
@@ -133,9 +134,24 @@
     <!-- WEBHOOKS -->
     <div id="tab-webhooks" class="tab-conteudo">
       <div class="card-form">
-        <h3 style="margin-top:0">Configuração do webhook (destino de teste)</h3>
+        <h3 style="margin-top:0">Configuração do webhook</h3>
+        <div class="form-linha">
+          <label>Formato do payload</label>
+          <select id="wh-formato">
+            <option value="padrao">Genérico (padrão desta plataforma)</option>
+            <option value="privefeet">privefeet.pro</option>
+          </select>
+        </div>
         <div class="form-linha"><label>URL de destino</label><input id="wh-url" placeholder="https://seu-endpoint-de-teste.com/webhook" /></div>
-        <div class="form-linha"><label>Secret (opcional — assina o payload em X-Webhook-Signature)</label><input id="wh-secret" /></div>
+        <div class="form-linha" id="linhaSecret"><label>Secret</label><input id="wh-secret" /></div>
+        <p id="hintPadrao" class="aviso" style="background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text-dim)">
+          Payload com <code>event_id</code>/<code>type</code>/<code>external_id</code>/<code>data</code>, assinado em <code>X-Webhook-Signature</code> (HMAC SHA-256) se você preencher o secret.
+        </p>
+        <p id="hintPrivefeet" class="aviso" style="display:none;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text-dim)">
+          URL: <code>https://privefeet.pro/api/webhooks/auction</code> · Secret: o mesmo <code>AUCTION_WEBHOOK_SECRET</code> configurado lá (roda <code>pm2 env &lt;id&gt; | grep AUCTION_WEBHOOK_SECRET</code> na VPS deles pra confirmar o valor atual).
+          Manda <code>type: start/bid/end</code> no formato exato deles, com o header <code>X-Webhook-Secret</code>.
+          Conferir se chegou: <a href="https://privefeet.pro/api/auction/current" target="_blank" rel="noopener">privefeet.pro/api/auction/current</a>.
+        </p>
         <div class="grid-3">
           <label style="display:flex;align-items:center;gap:8px"><input id="wh-ev-start" type="checkbox" /> Enviar evento "start"</label>
           <label style="display:flex;align-items:center;gap:8px"><input id="wh-ev-bid" type="checkbox" /> Enviar evento "lance"</label>

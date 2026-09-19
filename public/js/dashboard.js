@@ -220,6 +220,7 @@ async function carregarParticipantes() {
         <td>${p.id}</td>
         <td>${p.nome}</td>
         <td>${p.cidade || '—'}</td>
+        <td style="font-size:18px">${p.bandeira || ''}</td>
         <td><button class="btn btn-perigo btn-pequeno" data-remover="${p.id}">Remover</button></td>
       </tr>`
     )
@@ -229,6 +230,7 @@ async function carregarParticipantes() {
 document.getElementById('btnAddParticipante').addEventListener('click', async () => {
   const nomeInput = document.getElementById('f-participanteNome');
   const cidadeInput = document.getElementById('f-participanteCidade');
+  const bandeiraInput = document.getElementById('f-participanteBandeira');
   const fotoUrlInput = document.getElementById('f-participanteFotoUrl');
   const fotoArquivoInput = document.getElementById('f-participanteFotoArquivo');
   if (!nomeInput.value.trim()) return;
@@ -246,10 +248,16 @@ document.getElementById('btnAddParticipante').addEventListener('click', async ()
   await fetch('/api/admin/participantes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome: nomeInput.value.trim(), cidade: cidadeInput.value.trim(), fotoUrl })
+    body: JSON.stringify({
+      nome: nomeInput.value.trim(),
+      cidade: cidadeInput.value.trim(),
+      bandeira: bandeiraInput.value.trim(),
+      fotoUrl
+    })
   });
   nomeInput.value = '';
   cidadeInput.value = '';
+  bandeiraInput.value = '';
   fotoUrlInput.value = '';
   fotoArquivoInput.value = '';
   carregarParticipantes();
@@ -263,9 +271,20 @@ document.getElementById('tabelaParticipantes').addEventListener('click', async (
 });
 
 // ---------- webhooks ----------
+function atualizarHintFormato() {
+  const privefeet = document.getElementById('wh-formato').value === 'privefeet';
+  document.getElementById('hintPadrao').style.display = privefeet ? 'none' : 'block';
+  document.getElementById('hintPrivefeet').style.display = privefeet ? 'block' : 'none';
+  document.querySelector('#linhaSecret label').textContent = privefeet
+    ? 'Secret (AUCTION_WEBHOOK_SECRET, valor cru — vai no header X-Webhook-Secret)'
+    : 'Secret (opcional — assina o payload em X-Webhook-Signature)';
+}
+document.getElementById('wh-formato').addEventListener('change', atualizarHintFormato);
+
 async function carregarWebhookConfig() {
   const resp = await fetch('/api/admin/webhook-config');
   const cfg = await resp.json();
+  document.getElementById('wh-formato').value = cfg.formato || 'padrao';
   document.getElementById('wh-url').value = cfg.url || '';
   document.getElementById('wh-secret').value = cfg.secret || '';
   document.getElementById('wh-ev-start').checked = !!cfg.eventos?.start;
@@ -273,10 +292,12 @@ async function carregarWebhookConfig() {
   document.getElementById('wh-ev-won').checked = !!cfg.eventos?.won;
   document.getElementById('wh-autoconfirmar').checked = !!cfg.autoConfirmarPagamento;
   document.getElementById('wh-autoconfirmar-seg').value = cfg.autoConfirmarPagamentoSegundos ?? 10;
+  atualizarHintFormato();
 }
 
 document.getElementById('btnSalvarWebhook').addEventListener('click', async () => {
   const corpo = {
+    formato: document.getElementById('wh-formato').value,
     url: document.getElementById('wh-url').value.trim(),
     secret: document.getElementById('wh-secret').value.trim(),
     eventos: {

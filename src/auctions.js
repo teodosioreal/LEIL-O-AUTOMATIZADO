@@ -44,6 +44,7 @@ function lancePublico(b) {
     leilaoId: b.leilaoId,
     participanteNome: b.participanteNome,
     participanteCidade: b.participanteCidade || '',
+    participanteBandeira: b.participanteBandeira || '',
     participanteFoto: b.participanteFoto,
     valor: b.valor,
     criadoEm: b.criadoEm
@@ -149,7 +150,7 @@ function dispararWebhookStart(leilao) {
 // nunca e-mail/telefone/pagamento, esses campos nem existem aqui) ----------
 
 function participantePublico(p) {
-  return { id: p.id, nome: p.nome, cidade: p.cidade || '', fotoUrl: fotoParticipante(p) };
+  return { id: p.id, nome: p.nome, cidade: p.cidade || '', bandeira: p.bandeira || '', fotoUrl: fotoParticipante(p) };
 }
 
 function listarParticipantes() {
@@ -164,6 +165,7 @@ function criarParticipante(dados) {
     id: proximoId('participantes'),
     nome,
     cidade: String(entrada.cidade || '').trim(),
+    bandeira: String(entrada.bandeira || '').trim(),
     fotoUrl: String(entrada.fotoUrl || '').trim(),
     criadoEm: agora()
   };
@@ -203,6 +205,7 @@ function registrarLance(leilaoId, participanteId, valorPersonalizado) {
     participanteId: participante.id,
     participanteNome: participante.nome,
     participanteCidade: participante.cidade || '',
+    participanteBandeira: participante.bandeira || '',
     participanteFoto: fotoParticipante(participante),
     valor,
     criadoEm: agora()
@@ -227,6 +230,7 @@ function registrarLance(leilaoId, participanteId, valorPersonalizado) {
     titulo: leilao.titulo,
     bidderName: participante.nome,
     bidderCity: participante.cidade || '',
+    bidderFlag: participante.bandeira || '',
     bidderPhotoUrl: fotoParticipante(participante),
     valor,
     moeda: leilao.moeda,

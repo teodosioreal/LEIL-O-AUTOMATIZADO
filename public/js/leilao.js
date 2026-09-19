@@ -56,7 +56,7 @@ function renderFeed() {
       (b) => `<div class="item">
         <img class="avatar-lance" src="${b.participanteFoto}" alt="${b.participanteNome}" />
         <div style="flex:1">
-          <div><span class="nome">${b.participanteNome}</span>${b.participanteCidade ? ` <span class="cidade">· ${b.participanteCidade}</span>` : ''}</div>
+          <div><span class="nome">${b.participanteBandeira ? `${b.participanteBandeira} ` : ''}${b.participanteNome}</span>${b.participanteCidade ? ` <span class="cidade">· ${b.participanteCidade}</span>` : ''}</div>
           <span class="quando">${new Date(b.criadoEm).toLocaleTimeString('pt-BR')}</span>
         </div>
         <div class="valor">${formatarMoeda(b.valor, leilao.moeda)}</div>
@@ -69,7 +69,9 @@ async function carregarParticipantes() {
   const resp = await fetch('/api/participantes');
   const participantes = await resp.json();
   el.participante.innerHTML = participantes.length
-    ? participantes.map((p) => `<option value="${p.id}">${p.nome}${p.cidade ? ` — ${p.cidade}` : ''}</option>`).join('')
+    ? participantes
+        .map((p) => `<option value="${p.id}">${p.bandeira ? `${p.bandeira} ` : ''}${p.nome}${p.cidade ? ` — ${p.cidade}` : ''}</option>`)
+        .join('')
     : '<option value="">Cadastre compradores no dashboard</option>';
 }
 

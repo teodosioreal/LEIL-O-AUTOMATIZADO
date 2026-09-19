@@ -20,6 +20,9 @@ const BACKOFF_MS = [5000, 30000, 120000]; // espera antes da 2ª, 3ª e 4ª tent
 const TIMEOUT_MS = 8000;
 const INTERVALO_FILA_MS = 2000;
 
+// Mapeia nosso tipo interno pro "type" que o formato privefeet.pro espera.
+const TIPO_PRIVEFEET = { 'auction.start': 'start', 'bid.placed': 'bid', 'auction.won': 'end' };
+
 function getConfig() {
   return estado.webhookConfig;
 }
@@ -65,6 +68,24 @@ function assinar(secret, corpo) {
   return crypto.createHmac('sha256', secret).update(corpo).digest('hex');
 }
 
+// Formato flat exigido pelo privefeet.pro: type "start"/"bid"/"end",
+// event_id e external_id soltos no corpo (não dentro de "data"), e cada
+// tipo com só os campos que ele espera — ver README > privefeet.pro.
+function montarPayloadPrivefeet(evento) {
+  const base = { type: TIPO_PRIVEFEET[evento.type], external_id: evento.externalId, event_id: evento.eventId };
+  if (evento.type === 'auction.start') {
+    base.ends_at = evento.data.terminaEm;
+  } else if (evento.type === 'bid.placed') {
+    base.bidder_name = evento.data.bidderName;
+    if (evento.data.bidderFlag) base.bidder_flag = evento.data.bidderFlag;
+    base.amount = evento.data.valor;
+  } else if (evento.type === 'auction.won') {
+    base.winner_name = evento.data.winnerName;
+    base.winner_amount = evento.data.valor;
+  }
+  return base;
+}
+
 async function tentarEnviar(evento) {
   const config = getConfig();
   if (!config.url) {
@@ -74,28 +95,36 @@ async function tentarEnviar(evento) {
     return;
   }
 
+  const privefeet = config.formato === 'privefeet';
+
   evento.status = 'sending';
   evento.attempts += 1;
   evento.updatedAt = new Date().toISOString();
   salvar();
 
-  const payload = {
-    event_id: evento.eventId,
-    type: evento.type,
-    external_id: evento.externalId,
-    occurred_at: evento.createdAt,
-    attempt: evento.attempts,
-    data: evento.data
-  };
+  const payload = privefeet
+    ? montarPayloadPrivefeet(evento)
+    : {
+        event_id: evento.eventId,
+        type: evento.type,
+        external_id: evento.externalId,
+        occurred_at: evento.createdAt,
+        attempt: evento.attempts,
+        data: evento.data
+      };
   const corpo = JSON.stringify(payload);
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Webhook-Event-Id': evento.eventId,
-    'X-Webhook-Event-Type': evento.type,
-    'X-Webhook-Attempt': String(evento.attempts)
-  };
-  if (config.secret) headers['X-Webhook-Signature'] = `sha256=${assinar(config.secret, corpo)}`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (privefeet) {
+    // Header exato exigido pelo privefeet.pro: nome literal, valor cru
+    // (sem "Bearer", sem hash) — header errado ou ausente = 401 pra eles.
+    headers['X-Webhook-Secret'] = config.secret || '';
+  } else {
+    headers['X-Webhook-Event-Id'] = evento.eventId;
+    headers['X-Webhook-Event-Type'] = evento.type;
+    headers['X-Webhook-Attempt'] = String(evento.attempts);
+    if (config.secret) headers['X-Webhook-Signature'] = `sha256=${assinar(config.secret, corpo)}`;
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -150,6 +179,17 @@ async function processarFila() {
       (e) => e.status === 'pending' && new Date(e.nextAttemptAt).getTime() <= agora
     );
     for (const evento of pendentes) {
+      // Garante que "start" chegue antes de "bid"/"end" do mesmo leilão —
+      // vários destinos (ex: privefeet.pro) recusam com 404 se o "start"
+      // ainda não foi confirmado. Se o start desse external_id ainda está
+      // pendente, adia este evento pra próxima passada da fila (poucos
+      // segundos) em vez de arriscar mandar fora de ordem.
+      if (evento.type !== 'auction.start') {
+        const startPendente = estado.webhookEventos.some(
+          (e) => e.type === 'auction.start' && e.externalId === evento.externalId && e.status === 'pending' && e.id < evento.id
+        );
+        if (startPendente) continue;
+      }
       await tentarEnviar(evento);
     }
   } finally {

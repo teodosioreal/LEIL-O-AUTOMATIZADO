@@ -72,10 +72,12 @@ pro seu endpoint de teste já rodando em produção.
 
 ## Fluxo básico de teste
 
-1. **Dashboard → Compradores**: cadastre o "elenco" de teste — nome,
-   cidade/local e foto (URL ou upload; se deixar sem foto, gera um avatar
-   automático com as iniciais). Só dado público, sem e-mail/telefone — o
-   app nem tem esses campos.
+1. **Dashboard → Compradores**: já vem com **30 compradores de exemplo**
+   pré-cadastrados na primeira vez que o app sobe (maioria nomes árabes,
+   com alguns em inglês e espanhol — cada um com cidade e bandeira). Dá
+   pra editar, trocar a foto (URL ou upload; sem foto, gera um avatar
+   automático com as iniciais) ou cadastrar mais. Só dado público, sem
+   e-mail/telefone — o app nem tem esses campos.
 2. **Dashboard → Leilões**: crie um leilão com preço inicial, incremento
    mínimo, início/término e a janela/prorrogação do anti-sniping.
 3. **Dashboard → Webhooks**: cole a URL do seu endpoint de teste (ex: um
@@ -142,7 +144,33 @@ sempre com o **mesmo `event_id`** da tentativa original — quem recebe pode
 usar isso pra ignorar duplicata. Respostas 4xx não são reentregues
 automaticamente (é tratado como erro do formato/autenticação), mas dá pra
 reenviar manualmente pelo dashboard a qualquer momento, sem trocar o
-`event_id`.
+`event_id`. Além disso, `bid.placed`/`auction.won` de um leilão nunca são
+enviados antes do `auction.start` correspondente ter sido confirmado (200)
+— se o `start` ainda está tentando entregar, os outros esperam a vez.
+
+## Integração com o privefeet.pro
+
+Na aba **Webhooks**, o campo **Formato do payload** tem uma opção
+`privefeet.pro` — muda o payload e o header de autenticação pro formato
+exato que o endpoint deles espera (`POST
+https://privefeet.pro/api/webhooks/auction`):
+
+- Header: `X-Webhook-Secret: <AUCTION_WEBHOOK_SECRET>` (valor cru, sem
+  `Bearer`, sem hash — diferente do modo "Genérico", que assina com HMAC).
+- `start`: `{"type":"start","external_id":"leilao_<id>","event_id":"...","ends_at":"<ISO>"}`
+- `bid`: `{"type":"bid","external_id":"leilao_<id>","event_id":"...","bidder_name":"...","bidder_flag":"🇧🇷","amount":133.71}`
+  (`bidder_flag` só entra se o comprador tiver uma bandeira cadastrada;
+  `amount` sempre em reais, nunca centavos)
+- `end`: `{"type":"end","external_id":"leilao_<id>","event_id":"...","winner_name":"...","winner_amount":133.71}`
+
+Testado de ponta a ponta contra um servidor que reproduz as mesmas regras
+deles (401 sem header certo, 404 em `bid`/`end` sem `start` prévio pro
+mesmo `external_id`, 200 com `{"ok":true,"auction":{...}}`) — inclusive o
+caso de corrida em que o `start` falha e precisa de retry: o `bid` fica
+esperando e só é enviado depois que o `start` é confirmado.
+
+Pra conferir se chegou: `GET https://privefeet.pro/api/auction/current`
+(link direto aparece no dashboard quando esse formato está selecionado).
 
 ## Estrutura
 
