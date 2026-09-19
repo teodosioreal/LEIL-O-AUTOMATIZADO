@@ -53,7 +53,14 @@ function renderFeed() {
   }
   el.feed.innerHTML = lances
     .map(
-      (b) => `<div class="item"><div><span class="nome">${b.participanteNome}</span> <span class="quando">${new Date(b.criadoEm).toLocaleTimeString('pt-BR')}</span></div><div class="valor">${formatarMoeda(b.valor, leilao.moeda)}</div></div>`
+      (b) => `<div class="item">
+        <img class="avatar-lance" src="${b.participanteFoto}" alt="${b.participanteNome}" />
+        <div style="flex:1">
+          <div><span class="nome">${b.participanteNome}</span>${b.participanteCidade ? ` <span class="cidade">· ${b.participanteCidade}</span>` : ''}</div>
+          <span class="quando">${new Date(b.criadoEm).toLocaleTimeString('pt-BR')}</span>
+        </div>
+        <div class="valor">${formatarMoeda(b.valor, leilao.moeda)}</div>
+      </div>`
     )
     .join('');
 }
@@ -62,8 +69,8 @@ async function carregarParticipantes() {
   const resp = await fetch('/api/participantes');
   const participantes = await resp.json();
   el.participante.innerHTML = participantes.length
-    ? participantes.map((p) => `<option value="${p.id}">${p.nome}</option>`).join('')
-    : '<option value="">Cadastre participantes no dashboard</option>';
+    ? participantes.map((p) => `<option value="${p.id}">${p.nome}${p.cidade ? ` — ${p.cidade}` : ''}</option>`).join('')
+    : '<option value="">Cadastre compradores no dashboard</option>';
 }
 
 function animarNovoLance() {

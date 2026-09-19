@@ -84,10 +84,14 @@ admin.post('/leiloes/:id/confirmar-pagamento', (req, res) => {
 
 admin.post('/leiloes/:id/simular', (req, res) => {
   try {
-    const quantidade = Math.max(1, Math.min(200, Number(req.body.quantidade) || 10));
+    const lancesPorComprador = Math.max(1, Math.min(50, Number(req.body.lancesPorComprador) || 3));
+    const valorMin = Math.max(0.01, Number(req.body.valorMin) || 10);
+    const valorMax = Math.max(valorMin, Number(req.body.valorMax) || valorMin);
     const intervaloMinMs = Number(req.body.intervaloMinMs) || 2000;
     const intervaloMaxMs = Math.max(intervaloMinMs, Number(req.body.intervaloMaxMs) || 6000);
-    res.json(auctions.dispararSimulacao(req.params.id, quantidade, intervaloMinMs, intervaloMaxMs));
+    res.json(
+      auctions.dispararSimulacao(req.params.id, { lancesPorComprador, valorMin, valorMax, intervaloMinMs, intervaloMaxMs })
+    );
   } catch (err) {
     res.status(400).json({ erro: err.message });
   }
@@ -104,7 +108,7 @@ admin.get('/participantes', (req, res) => {
 
 admin.post('/participantes', (req, res) => {
   try {
-    res.status(201).json(auctions.criarParticipante(req.body.nome));
+    res.status(201).json(auctions.criarParticipante(req.body));
   } catch (err) {
     res.status(400).json({ erro: err.message });
   }
@@ -137,6 +141,14 @@ admin.post('/webhook-eventos/:id/reenviar', (req, res) => {
 admin.post('/upload', upload.single('imagem'), (req, res) => {
   if (!req.file) return res.status(400).json({ erro: 'Nenhum arquivo enviado' });
   res.json({ url: `/uploads/${req.file.filename}` });
+});
+
+admin.get('/rotacao-config', (req, res) => {
+  res.json(auctions.getConfigRotacao());
+});
+
+admin.put('/rotacao-config', (req, res) => {
+  res.json(auctions.setConfigRotacao(req.body));
 });
 
 module.exports = { publicas, admin };

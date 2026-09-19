@@ -20,7 +20,7 @@
   <div class="container">
     <div class="tabs">
       <button class="tab-btn ativo" data-tab="leiloes">Leilões</button>
-      <button class="tab-btn" data-tab="participantes">Participantes</button>
+      <button class="tab-btn" data-tab="participantes">Compradores</button>
       <button class="tab-btn" data-tab="webhooks">Webhooks</button>
     </div>
 
@@ -53,21 +53,76 @@
         <div id="avisoLeilao"></div>
       </div>
 
+      <div class="card-form">
+        <h3 style="margin-top:0">Rotação automática de leilões</h3>
+        <p style="margin-top:-6px;color:var(--text-faint);font-size:13px">
+          Liga um leilão novo sozinho, de tempos em tempos (ex: de 3 em 3
+          minutos, de 6 em 6, o que você configurar) — sem precisar clicar
+          em "Criar leilão" toda hora. Pode já sair simulando lances
+          automaticamente, com os compradores cadastrados.
+        </p>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <input id="rot-ativo" type="checkbox" /> Ativar rotação automática
+        </label>
+        <div class="grid-3">
+          <div class="form-linha"><label>Criar um leilão a cada (minutos)</label><input id="rot-intervalo" type="number" step="0.5" min="0.5" value="5" /></div>
+          <div class="form-linha"><label>Duração de cada leilão (minutos)</label><input id="rot-duracao" type="number" step="0.5" min="0.5" value="5" /></div>
+          <div class="form-linha"><label>Título base</label><input id="rot-titulo" value="Leilão automático" /></div>
+        </div>
+        <div class="grid-3">
+          <div class="form-linha"><label>Preço inicial</label><input id="rot-precoInicial" type="number" step="0.01" value="100" /></div>
+          <div class="form-linha"><label>Incremento mínimo</label><input id="rot-incrementoMinimo" type="number" step="0.01" value="10" /></div>
+          <div class="form-linha"><label>Moeda</label><input id="rot-moeda" value="BRL" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-linha"><label>Anti-sniping — janela (segundos)</label><input id="rot-antiSnipeJanela" type="number" value="30" /></div>
+          <div class="form-linha"><label>Anti-sniping — prorrogação (segundos)</label><input id="rot-antiSnipeExtensao" type="number" value="60" /></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin:4px 0 14px">
+          <input id="rot-autoSimular" type="checkbox" /> Já simular lances automaticamente em cada leilão criado
+        </label>
+        <div class="grid-3">
+          <div class="form-linha"><label>Lances por comprador</label><input id="rot-lancesPorComprador" type="number" min="1" value="2" /></div>
+          <div class="form-linha"><label>Valor mín. do incremento</label><input id="rot-valorMin" type="number" step="0.01" value="10" /></div>
+          <div class="form-linha"><label>Valor máx. do incremento</label><input id="rot-valorMax" type="number" step="0.01" value="50" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-linha"><label>Intervalo entre lances — mín. (ms)</label><input id="rot-intervaloMinMs" type="number" value="3000" /></div>
+          <div class="form-linha"><label>Intervalo entre lances — máx. (ms)</label><input id="rot-intervaloMaxMs" type="number" value="8000" /></div>
+        </div>
+        <button id="btnSalvarRotacao" class="btn btn-lance" style="width:auto">Salvar rotação automática</button>
+        <div id="avisoRotacao"></div>
+        <p id="statusRotacao" style="margin-top:10px;color:var(--text-faint);font-size:13px"></p>
+      </div>
+
       <table>
         <thead><tr><th>ID</th><th>Título</th><th>Status</th><th>Preço atual</th><th>Termina em</th><th>Ações</th></tr></thead>
         <tbody id="tabelaLeiloes"></tbody>
       </table>
     </div>
 
-    <!-- PARTICIPANTES -->
+    <!-- PARTICIPANTES / COMPRADORES -->
     <div id="tab-participantes" class="tab-conteudo">
       <div class="card-form">
-        <h3 style="margin-top:0">Adicionar participante (nome público — sem e-mail/telefone)</h3>
-        <div class="form-linha" style="max-width:320px"><label>Nome / apelido</label><input id="f-participanteNome" /></div>
-        <button id="btnAddParticipante" class="btn btn-lance" style="width:auto">Adicionar</button>
+        <h3 style="margin-top:0">Adicionar comprador (só dados públicos — sem e-mail/telefone)</h3>
+        <p style="margin-top:-6px;color:var(--text-faint);font-size:13px">
+          Cadastre aqui o "elenco" de compradores de teste. O simulador de
+          lances vai rotacionar entre eles, e o nome/cidade/foto aparecem no
+          feed de lances da vitrine — dá pra montar um leilão com cara de
+          disputa real.
+        </p>
+        <div class="grid-3">
+          <div class="form-linha"><label>Nome</label><input id="f-participanteNome" placeholder="Ex: Carlos Mendes" /></div>
+          <div class="form-linha"><label>Cidade / local</label><input id="f-participanteCidade" placeholder="Ex: São Paulo, SP" /></div>
+          <div class="form-linha"><label>Foto (URL ou envie um arquivo)</label>
+            <input id="f-participanteFotoUrl" placeholder="https://..." />
+            <input id="f-participanteFotoArquivo" type="file" accept="image/*" />
+          </div>
+        </div>
+        <button id="btnAddParticipante" class="btn btn-lance" style="width:auto">Adicionar comprador</button>
       </div>
       <table>
-        <thead><tr><th>ID</th><th>Nome</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Foto</th><th>ID</th><th>Nome</th><th>Cidade</th><th>Ações</th></tr></thead>
         <tbody id="tabelaParticipantes"></tbody>
       </table>
     </div>
@@ -101,9 +156,18 @@
 
   <!-- Modal simples pro simulador -->
   <div id="modalSimulador" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:50">
-    <div class="painel" style="width:340px">
+    <div class="painel" style="width:360px">
       <h3 style="margin-top:0">Simular lances</h3>
-      <div class="form-linha"><label>Quantidade de lances</label><input id="sim-quantidade" type="number" value="10" min="1" max="200" /></div>
+      <p style="margin-top:-6px;color:var(--text-faint);font-size:13px">
+        Cada comprador cadastrado dá esse tanto de lances, em ordem
+        embaralhada. O valor de cada lance sobe um valor aleatório dentro
+        da faixa abaixo — sem teto.
+      </p>
+      <div class="form-linha"><label>Lances por comprador</label><input id="sim-lancesPorComprador" type="number" value="3" min="1" max="50" /></div>
+      <div class="grid-2">
+        <div class="form-linha"><label>Valor mín. do incremento</label><input id="sim-valorMin" type="number" step="0.01" value="10" /></div>
+        <div class="form-linha"><label>Valor máx. do incremento</label><input id="sim-valorMax" type="number" step="0.01" value="50" /></div>
+      </div>
       <div class="grid-2">
         <div class="form-linha"><label>Intervalo mín. (ms)</label><input id="sim-intervaloMin" type="number" value="2000" /></div>
         <div class="form-linha"><label>Intervalo máx. (ms)</label><input id="sim-intervaloMax" type="number" value="6000" /></div>

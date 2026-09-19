@@ -22,6 +22,28 @@ function estadoInicial() {
       autoConfirmarPagamentoSegundos: 10
     },
     webhookEventos: [],
+    // rotação automática: cria (e opcionalmente já simula) um leilão novo
+    // de tempos em tempos, sozinho — pra deixar rodando sem precisar ficar
+    // clicando em "criar leilão" toda hora.
+    rotacao: {
+      ativo: false,
+      intervaloMinutos: 5,
+      duracaoMinutos: 5,
+      tituloBase: 'Leilão automático',
+      precoInicial: 100,
+      incrementoMinimo: 10,
+      moeda: 'BRL',
+      antiSnipeJanelaSegundos: 30,
+      antiSnipeExtensaoSegundos: 60,
+      autoSimular: true,
+      lancesPorComprador: 2,
+      valorMin: 10,
+      valorMax: 50,
+      intervaloMinMs: 3000,
+      intervaloMaxMs: 8000,
+      ultimoCriadoEm: null,
+      contador: 0
+    },
     _seq: { leiloes: 0, lances: 0, participantes: 0, webhookEventos: 0 }
   };
 }
@@ -40,6 +62,7 @@ function carregar() {
       ...base,
       ...dados,
       webhookConfig: { ...base.webhookConfig, ...(dados.webhookConfig || {}) },
+      rotacao: { ...base.rotacao, ...(dados.rotacao || {}) },
       _seq: { ...base._seq, ...(dados._seq || {}) }
     };
   } catch (err) {

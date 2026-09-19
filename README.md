@@ -72,22 +72,39 @@ pro seu endpoint de teste já rodando em produção.
 
 ## Fluxo básico de teste
 
-1. **Dashboard → Participantes**: cadastre alguns nomes (só nome público,
-   sem e-mail/telefone — o app nem tem esses campos).
+1. **Dashboard → Compradores**: cadastre o "elenco" de teste — nome,
+   cidade/local e foto (URL ou upload; se deixar sem foto, gera um avatar
+   automático com as iniciais). Só dado público, sem e-mail/telefone — o
+   app nem tem esses campos.
 2. **Dashboard → Leilões**: crie um leilão com preço inicial, incremento
    mínimo, início/término e a janela/prorrogação do anti-sniping.
 3. **Dashboard → Webhooks**: cole a URL do seu endpoint de teste (ex: um
    `webhook.site`, RequestBin, ou seu próprio servidor), e marque quais dos
    3 eventos quer receber.
 4. Quando o leilão estiver "Ao vivo", clique em **Simular lances** na
-   tabela de leilões — escolha quantos lances e o intervalo entre eles. O
-   sistema roda em background, sorteando participantes do seu roster,
-   registrando lances de verdade (mesmo caminho de um lance humano) — a
-   vitrine e a página do leilão pegam cada lance novo no próprio polling
+   tabela de leilões — escolha quantos lances CADA comprador vai dar e a
+   faixa de valor do incremento (ex: de 10 a 50 — sem teto de preço). O
+   sistema roda em background, rotacionando entre os compradores
+   cadastrados (ordem embaralhada), registrando lances de verdade (mesmo
+   caminho de um lance humano, com foto/nome/cidade aparecendo no feed) —
+   a vitrine e a página do leilão pegam cada lance novo no próprio polling
    (poucos segundos de atraso, sem precisar recarregar a página).
 5. Quando o leilão termina, se houve lance, o pagamento é confirmado
    automaticamente (configurável em Webhooks — ou clique manualmente em
    **Confirmar pagamento** na tabela) e o webhook de vencedor é disparado.
+
+## Rotação automática de leilões
+
+Na aba **Leilões → Rotação automática**, dá pra deixar a plataforma
+criando leilões sozinha, de tempos em tempos — ex: um a cada 3 minutos, ou
+a cada 6, o valor é livre (mínimo 30s, só pra não entrar em loop se
+alguém digitar 0 por engano). Cada leilão automático usa o preço
+inicial/incremento/anti-sniping que você configurar ali, e opcionalmente
+já sai simulando lances sozinho (mesma lógica do simulador manual: cada
+comprador cadastrado dá X lances, com valor aleatório numa faixa que você
+define). É a forma mais "deixa rodando" de testar o fluxo inteiro —
+leilão nascendo, recebendo lance, encerrando, pagando, disparando
+webhook — em loop, sem precisar ficar clicando.
 
 ## Os 3 eventos de webhook
 
@@ -112,7 +129,9 @@ configurar um secret — HMAC SHA-256 do corpo).
   mesmo evento é **reenviado com o mesmo `external_id`** (novo
   `event_id`, pois é uma nova ocorrência) — quem recebe trata como
   atualização do mesmo leilão, não como um leilão novo.
-- **`bid.placed`** — disparado a cada lance válido.
+- **`bid.placed`** — disparado a cada lance válido. `data` inclui
+  `bidderName`, `bidderCity` e `bidderPhotoUrl` (a foto do comprador, ou o
+  avatar de iniciais gerado automaticamente) — sempre dado público.
 - **`auction.won`** — disparado quando o leilão encerra e o pagamento é
   confirmado (capturado com sucesso — nesta versão de testes, a "captura"
   é simulada/manual no dashboard).
