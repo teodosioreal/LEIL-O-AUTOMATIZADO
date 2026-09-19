@@ -1,12 +1,18 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const auctions = require('./auctions');
 const webhooks = require('./webhooks');
 
+// Garante que a pasta exista mesmo num deploy do zero (ex: zip extraído na
+// Hostinger sem a pasta uploads/) — o multer não cria diretórios sozinho.
+const pastaUploads = path.join(__dirname, '..', 'public', 'uploads');
+fs.mkdirSync(pastaUploads, { recursive: true });
+
 const upload = multer({
   storage: multer.diskStorage({
-    destination: path.join(__dirname, '..', 'public', 'uploads'),
+    destination: pastaUploads,
     filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`)
   }),
   limits: { fileSize: 8 * 1024 * 1024 }
