@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard — Leilão Automatizado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <h1><a href="/" style="color:inherit"><span class="spark">✦</span> Leilão Automatizado</a></h1>
+      <span class="badge">Plataforma para testes de funcionamento</span>
+    </div>
+    <a href="/" class="btn btn-secundario btn-pequeno">Ver vitrine</a>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn ativo" data-tab="leiloes">Leilões</button>
+      <button class="tab-btn" data-tab="participantes">Participantes</button>
+      <button class="tab-btn" data-tab="webhooks">Webhooks</button>
+    </div>
+
+    <!-- LEILÕES -->
+    <div id="tab-leiloes" class="tab-conteudo ativo">
+      <div class="card-form">
+        <h3 style="margin-top:0">Novo leilão</h3>
+        <div class="grid-2">
+          <div class="form-linha"><label>Título</label><input id="f-titulo" /></div>
+          <div class="form-linha"><label>Imagem (URL ou envie um arquivo)</label>
+            <input id="f-imagemUrl" placeholder="https://..." />
+            <input id="f-imagemArquivo" type="file" accept="image/*" />
+          </div>
+        </div>
+        <div class="form-linha"><label>Descrição</label><textarea id="f-descricao" rows="2"></textarea></div>
+        <div class="grid-3">
+          <div class="form-linha"><label>Preço inicial</label><input id="f-precoInicial" type="number" step="0.01" value="100" /></div>
+          <div class="form-linha"><label>Incremento mínimo</label><input id="f-incrementoMinimo" type="number" step="0.01" value="10" /></div>
+          <div class="form-linha"><label>Moeda</label><input id="f-moeda" value="BRL" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-linha"><label>Início</label><input id="f-iniciaEm" type="datetime-local" /></div>
+          <div class="form-linha"><label>Término</label><input id="f-terminaEm" type="datetime-local" /></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-linha"><label>Anti-sniping — janela (segundos antes do fim)</label><input id="f-antiSnipeJanela" type="number" value="30" /></div>
+          <div class="form-linha"><label>Anti-sniping — prorrogação (segundos)</label><input id="f-antiSnipeExtensao" type="number" value="60" /></div>
+        </div>
+        <button id="btnCriarLeilao" class="btn btn-lance" style="width:auto">Criar leilão</button>
+        <div id="avisoLeilao"></div>
+      </div>
+
+      <table>
+        <thead><tr><th>ID</th><th>Título</th><th>Status</th><th>Preço atual</th><th>Termina em</th><th>Ações</th></tr></thead>
+        <tbody id="tabelaLeiloes"></tbody>
+      </table>
+    </div>
+
+    <!-- PARTICIPANTES -->
+    <div id="tab-participantes" class="tab-conteudo">
+      <div class="card-form">
+        <h3 style="margin-top:0">Adicionar participante (nome público — sem e-mail/telefone)</h3>
+        <div class="form-linha" style="max-width:320px"><label>Nome / apelido</label><input id="f-participanteNome" /></div>
+        <button id="btnAddParticipante" class="btn btn-lance" style="width:auto">Adicionar</button>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Nome</th><th>Ações</th></tr></thead>
+        <tbody id="tabelaParticipantes"></tbody>
+      </table>
+    </div>
+
+    <!-- WEBHOOKS -->
+    <div id="tab-webhooks" class="tab-conteudo">
+      <div class="card-form">
+        <h3 style="margin-top:0">Configuração do webhook (destino de teste)</h3>
+        <div class="form-linha"><label>URL de destino</label><input id="wh-url" placeholder="https://seu-endpoint-de-teste.com/webhook" /></div>
+        <div class="form-linha"><label>Secret (opcional — assina o payload em X-Webhook-Signature)</label><input id="wh-secret" /></div>
+        <div class="grid-3">
+          <label style="display:flex;align-items:center;gap:8px"><input id="wh-ev-start" type="checkbox" /> Enviar evento "start"</label>
+          <label style="display:flex;align-items:center;gap:8px"><input id="wh-ev-bid" type="checkbox" /> Enviar evento "lance"</label>
+          <label style="display:flex;align-items:center;gap:8px"><input id="wh-ev-won" type="checkbox" /> Enviar evento "vencedor"</label>
+        </div>
+        <div class="grid-2" style="margin-top:10px">
+          <label style="display:flex;align-items:center;gap:8px"><input id="wh-autoconfirmar" type="checkbox" /> Confirmar pagamento automaticamente ao encerrar</label>
+          <div class="form-linha"><label>Segundos até confirmar automaticamente</label><input id="wh-autoconfirmar-seg" type="number" value="10" /></div>
+        </div>
+        <button id="btnSalvarWebhook" class="btn btn-lance" style="width:auto;margin-top:10px">Salvar configuração</button>
+        <div id="avisoWebhook"></div>
+      </div>
+
+      <h3>Eventos enviados</h3>
+      <table>
+        <thead><tr><th>ID</th><th>Tipo</th><th>External ID</th><th>Status</th><th>Tentativas</th><th>Último erro</th><th>Criado em</th><th></th></tr></thead>
+        <tbody id="tabelaEventos"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal simples pro simulador -->
+  <div id="modalSimulador" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:50">
+    <div class="painel" style="width:340px">
+      <h3 style="margin-top:0">Simular lances</h3>
+      <div class="form-linha"><label>Quantidade de lances</label><input id="sim-quantidade" type="number" value="10" min="1" max="200" /></div>
+      <div class="grid-2">
+        <div class="form-linha"><label>Intervalo mín. (ms)</label><input id="sim-intervaloMin" type="number" value="2000" /></div>
+        <div class="form-linha"><label>Intervalo máx. (ms)</label><input id="sim-intervaloMax" type="number" value="6000" /></div>
+      </div>
+      <div class="linha-acoes">
+        <button id="btnDispararSim" class="btn btn-lance">Disparar</button>
+        <button id="btnFecharSim" class="btn btn-secundario">Cancelar</button>
+      </div>
+      <div id="avisoSim"></div>
+    </div>
+  </div>
+
+  <footer class="rodape">Leilão Automatizado — plataforma para testes de funcionamento</footer>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

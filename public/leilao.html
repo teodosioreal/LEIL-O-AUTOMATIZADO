@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Leilão — Leilão Automatizado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <h1><a href="/" style="color:inherit"><span class="spark">✦</span> Leilão Automatizado</a></h1>
+      <span class="badge">Plataforma para testes de funcionamento</span>
+    </div>
+    <a href="/dashboard.html" class="btn btn-secundario btn-pequeno">Dashboard</a>
+  </div>
+
+  <div class="container">
+    <div id="conteudo" class="detalhe-layout" style="display:none">
+      <div>
+        <img id="foto" class="foto-grande" src="" alt="" />
+        <h2 id="titulo" style="margin:16px 0 4px"></h2>
+        <p id="descricao" style="color:var(--text-dim)"></p>
+      </div>
+
+      <div>
+        <div class="painel">
+          <span id="statusPill" class="status-pill"></span>
+          <div style="margin-top:12px">
+            <div class="preco-label">Lance atual</div>
+            <div id="precoAtual" class="preco-atual"></div>
+          </div>
+          <div id="countdown" class="countdown" style="margin-top:12px"></div>
+
+          <div style="margin-top:18px">
+            <div class="form-linha">
+              <label for="participante">Dar lance como</label>
+              <select id="participante"></select>
+            </div>
+            <div class="form-linha">
+              <label for="valorLance">Valor do lance (mínimo indicado)</label>
+              <input id="valorLance" type="number" step="0.01" />
+            </div>
+            <button id="btnLance" class="btn btn-lance">Dar lance</button>
+            <div id="aviso"></div>
+          </div>
+        </div>
+
+        <div class="painel" style="margin-top:20px">
+          <h3 style="margin:0 0 4px">Lances recentes</h3>
+          <div id="feed" class="feed-lances"></div>
+        </div>
+      </div>
+    </div>
+    <div id="vazio" class="vazio" style="display:none">Leilão não encontrado.</div>
+  </div>
+
+  <footer class="rodape">Leilão Automatizado — plataforma para testes de funcionamento</footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/util.js"></script>
+  <script src="/js/leilao.js"></script>
+</body>
+</html>
